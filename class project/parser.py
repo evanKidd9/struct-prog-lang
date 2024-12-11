@@ -98,10 +98,10 @@ def test_parse_factor():
 
 def parse_term(tokens):
     """
-    term = factor { "*"|"/" factor }
+    term = factor { "*"|"/"|"%" factor }
     """
     node, tokens = parse_factor(tokens)
-    while tokens[0]["tag"] in ["*", "/"]:
+    while tokens[0]["tag"] in ["*", "/", "%"]:
         tag = tokens[0]["tag"]
         right_node, tokens = parse_factor(tokens[1:])
         node = {"tag": tag, "left": node, "right": right_node}
@@ -631,6 +631,46 @@ def test_parse():
         },
     }
 
+def test_parse_term_with_modulo():
+    """
+    term = factor { "*"|"/"|"%" factor }
+    """
+    print("testing parse_term with modulo")
+    
+    # Test case 1: Single modulo operation
+    tokens = tokenize("10%3")
+    ast, tokens = parse_term(tokens)
+    assert ast == {
+        "left": {"position": 0, "tag": "number", "value": 10},
+        "right": {"position": 2, "tag": "number", "value": 3},
+        "tag": "%",
+    }
+    
+    # Test case 2: Combined with multiplication
+    tokens = tokenize("10%3*2")
+    ast, tokens = parse_term(tokens)
+    assert ast == {
+        "left": {
+            "left": {"position": 0, "tag": "number", "value": 10},
+            "right": {"position": 2, "tag": "number", "value": 3},
+            "tag": "%",
+        },
+        "right": {"position": 4, "tag": "number", "value": 2},
+        "tag": "*",
+    }
+    
+    # Test case 3: Mixed operators
+    tokens = tokenize("10*3%2")
+    ast, tokens = parse_term(tokens)
+    assert ast == {
+        "left": {
+            "left": {"position": 0, "tag": "number", "value": 10},
+            "right": {"position": 2, "tag": "number", "value": 3},
+            "tag": "*",
+        },
+        "right": {"position": 4, "tag": "number", "value": 2},
+        "tag": "%",
+    }
 
 if __name__ == "__main__":
     test_parse_simple_expression()
@@ -649,4 +689,5 @@ if __name__ == "__main__":
     test_parse_statement_list()
     test_parse_program()
     test_parse()
+    test_parse_term_with_modulo()
     print("done")
